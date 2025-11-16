@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xsukax RSS Viewer - Professional Feed Reader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #0d1117; color: #c9d1d9; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 24px; margin-bottom: 24px; }
+        .input-group { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+        .input-group:focus-within { border-color: #58a6ff; outline: 2px solid #1f6feb33; }
+        .input-field { background: transparent; border: none; outline: none; color: #c9d1d9; flex: 1; font-size: 14px; }
+        .btn { background: #238636; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background 0.2s; white-space: nowrap; }
+        .btn:hover { background: #2ea043; }
+        .btn:active { background: #238636; }
+        .btn-secondary { background: #21262d; border: 1px solid #30363d; color: #c9d1d9; }
+        .btn-secondary:hover { background: #30363d; }
+        .feed-container { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 24px; }
+        .feed-header { border-bottom: 1px solid #30363d; padding-bottom: 16px; margin-bottom: 24px; }
+        .feed-title { font-size: 24px; font-weight: 600; color: #c9d1d9; margin-bottom: 8px; }
+        .feed-description { font-size: 14px; color: #8b949e; line-height: 1.5; }
+        .feed-item { border-bottom: 1px solid #30363d; padding: 20px 0; }
+        .feed-item:last-child { border-bottom: none; }
+        .item-title { font-size: 18px; font-weight: 600; color: #58a6ff; margin-bottom: 8px; text-decoration: none; display: inline-block; }
+        .item-title:hover { text-decoration: underline; }
+        .item-meta { font-size: 12px; color: #8b949e; margin-bottom: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+        .item-description { font-size: 14px; color: #c9d1d9; line-height: 1.6; margin-bottom: 12px; }
+        .item-link { font-size: 13px; color: #58a6ff; text-decoration: none; }
+        .item-link:hover { text-decoration: underline; }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(1, 4, 9, 0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal.active { display: flex; }
+        .modal-content { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 24px; max-width: 500px; width: 90%; }
+        .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: #c9d1d9; }
+        .modal-message { font-size: 14px; color: #8b949e; margin-bottom: 20px; line-height: 1.5; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .notification { position: fixed; top: 20px; right: 20px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px 20px; max-width: 400px; z-index: 1001; display: none; box-shadow: 0 8px 24px rgba(1, 4, 9, 0.4); }
+        .notification.active { display: block; animation: slideIn 0.3s ease-out; }
+        .notification.error { border-left: 3px solid #f85149; }
+        .notification.success { border-left: 3px solid #238636; }
+        .notification.info { border-left: 3px solid #58a6ff; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .loading { display: none; align-items: center; justify-content: center; padding: 40px; }
+        .loading.active { display: flex; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .empty-state { text-align: center; padding: 60px 20px; color: #8b949e; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: #c9d1d9; }
+        .empty-state-text { font-size: 14px; }
+        .share-section { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-top: 16px; display: none; }
+        .share-section.active { display: block; }
+        .share-url { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; font-size: 12px; color: #8b949e; word-break: break-all; margin-bottom: 12px; }
+        @media (max-width: 768px) { .container { padding: 12px; } .header { padding: 16px; } .feed-container { padding: 16px; } .item-meta { font-size: 11px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">📡 xsukax RSS Viewer</h1>
+            <p style="color: #8b949e; font-size: 14px; margin-bottom: 20px;">Professional RSS feed reader with shareable URLs</p>
+            
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="input-group" style="flex: 1; min-width: 250px;">
+                    <span style="color: #8b949e;">🔗</span>
+                    <input type="text" id="feedUrl" class="input-field" placeholder="Enter RSS feed URL (e.g., https://example.com/feed.xml)" />
+                </div>
+                <button class="btn" id="viewBtn">View RSS Feed</button>
+                <button class="btn btn-secondary" id="clearBtn">Clear</button>
+            </div>
+
+            <div class="share-section" id="shareSection">
+                <p style="font-size: 13px; color: #8b949e; margin-bottom: 8px;">📤 Shareable URL:</p>
+                <div class="share-url" id="shareUrl"></div>
+                <button class="btn btn-secondary" id="copyBtn" style="font-size: 13px; padding: 6px 12px;">Copy to Clipboard</button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Feed Content -->
+        <div id="feedContent"></div>
+    </div>
+
+    <!-- Modal Dialog -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Notice</div>
+            <div class="modal-message" id="modalMessage"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="modalClose">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div id="notificationMessage"></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const feedUrlInput = document.getElementById('feedUrl');
+        const viewBtn = document.getElementById('viewBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const feedContent = document.getElementById('feedContent');
+        const loading = document.getElementById('loading');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const modalClose = document.getElementById('modalClose');
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notificationMessage');
+        const shareSection = document.getElementById('shareSection');
+        const shareUrl = document.getElementById('shareUrl');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // CORS Proxy Configuration
+        const CORS_PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+        let currentProxyIndex = 0;
+
+        // Initialize application
+        function init() {
+            // Load feed from URL parameter if present
+            const urlParams = new URLSearchParams(window.location.search);
+            const feedParam = urlParams.get('feed');
+            
+            if (feedParam) {
+                feedUrlInput.value = decodeURIComponent(feedParam);
+                loadFeed(feedUrlInput.value);
+            } else {
+                showEmptyState();
+            }
+
+            // Event listeners
+            viewBtn.addEventListener('click', handleViewClick);
+            clearBtn.addEventListener('click', handleClear);
+            modalClose.addEventListener('click', hideModal);
+            copyBtn.addEventListener('click', handleCopy);
+            feedUrlInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleViewClick();
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) hideModal();
+            });
+        }
+
+        // Handle view button click
+        function handleViewClick() {
+            const url = feedUrlInput.value.trim();
+            
+            if (!url) {
+                showNotification('Please enter a valid RSS feed URL', 'error');
+                return;
+            }
+
+            if (!isValidUrl(url)) {
+                showNotification('Please enter a valid URL format', 'error');
+                return;
+            }
+
+            loadFeed(url);
+            updateShareUrl(url);
+        }
+
+        // Validate URL format
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // Load and parse RSS feed
+        async function loadFeed(url) {
+            showLoading();
+            feedContent.innerHTML = '';
+            
+            try {
+                const response = await fetchWithProxy(url);
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(response, 'text/xml');
+                
+                // Check for parsing errors
+                const parseError = xmlDoc.querySelector('parsererror');
+                if (parseError) {
+                    throw new Error('Failed to parse XML feed');
+                }
+
+                // Detect feed type and parse accordingly
+                const isAtom = xmlDoc.querySelector('feed');
+                const feedData = isAtom ? parseAtomFeed(xmlDoc) : parseRssFeed(xmlDoc);
+                
+                if (!feedData.items || feedData.items.length === 0) {
+                    throw new Error('No items found in feed');
+                }
+
+                renderFeed(feedData);
+                showNotification('Feed loaded successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Feed loading error:', error);
+                hideLoading();
+                showModal('Error Loading Feed', `Failed to load RSS feed. ${error.message}. Please check the URL and try again.`);
+                showEmptyState();
+            }
+        }
+
+        // Fetch feed with CORS proxy fallback
+        async function fetchWithProxy(url) {
+            const encodedUrl = encodeURIComponent(url);
+            
+            for (let i = 0; i < CORS_PROXIES.length; i++) {
+                try {
+                    const proxyUrl = CORS_PROXIES[currentProxyIndex] + encodedUrl;
+                    const response = await fetch(proxyUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const text = await response.text();
+                    return text;
+                    
+                } catch (error) {
+                    console.warn(`Proxy ${currentProxyIndex} failed:`, error);
+                    currentProxyIndex = (currentProxyIndex + 1) % CORS_PROXIES.length;
+                    
+                    if (i === CORS_PROXIES.length - 1) {
+                        throw new Error('All CORS proxies failed. Please try again later.');
+                    }
+                }
+            }
+        }
+
+        // Parse RSS 2.0 feed
+        function parseRssFeed(xmlDoc) {
+            const channel = xmlDoc.querySelector('channel');
+            const items = Array.from(xmlDoc.querySelectorAll('item'));
+            
+            return {
+                title: getTextContent(channel, 'title'),
+                description: getTextContent(channel, 'description'),
+                link: getTextContent(channel, 'link'),
+                items: items.map(item => ({
+                    title: getTextContent(item, 'title'),
+                    link: getTextContent(item, 'link'),
+                    description: getTextContent(item, 'description'),
+                    pubDate: getTextContent(item, 'pubDate'),
+                    author: getTextContent(item, 'author') || getTextContent(item, 'dc\\:creator'),
+                    category: getTextContent(item, 'category')
+                }))
+            };
+        }
+
+        // Parse Atom feed
+        function parseAtomFeed(xmlDoc) {
+            const feed = xmlDoc.querySelector('feed');
+            const entries = Array.from(xmlDoc.querySelectorAll('entry'));
+            
+            return {
+                title: getTextContent(feed, 'title'),
+                description: getTextContent(feed, 'subtitle'),
+                link: feed.querySelector('link')?.getAttribute('href') || '',
+                items: entries.map(entry => {
+                    const link = entry.querySelector('link');
+                    return {
+                        title: getTextContent(entry, 'title'),
+                        link: link?.getAttribute('href') || '',
+                        description: getTextContent(entry, 'summary') || getTextContent(entry, 'content'),
+                        pubDate: getTextContent(entry, 'updated') || getTextContent(entry, 'published'),
+                        author: getTextContent(entry, 'author name'),
+                        category: getTextContent(entry, 'category')
+                    };
+                })
+            };
+        }
+
+        // Helper to get text content safely
+        function getTextContent(parent, selector) {
+            const element = parent?.querySelector(selector);
+            return element?.textContent?.trim() || '';
+        }
+
+        // Render feed content
+        function renderFeed(feedData) {
+            const html = `
+                <div class="feed-container">
+                    <div class="feed-header">
+                        <div class="feed-title">${escapeHtml(feedData.title || 'Untitled Feed')}</div>
+                        ${feedData.description ? `<div class="feed-description">${escapeHtml(feedData.description)}</div>` : ''}
+                        ${feedData.link ? `<a href="${escapeHtml(feedData.link)}" target="_blank" class="item-link" style="margin-top: 8px; display: inline-block;">Visit Website →</a>` : ''}
+                    </div>
+                    ${feedData.items.map((item, index) => `
+                        <div class="feed-item">
+                            <a href="${escapeHtml(item.link)}" target="_blank" class="item-title">
+                                ${escapeHtml(item.title || 'Untitled')}
+                            </a>
+                            <div class="item-meta">
+                                ${item.pubDate ? `<span>📅 ${formatDate(item.pubDate)}</span>` : ''}
+                                ${item.author ? `<span>✍️ ${escapeHtml(item.author)}</span>` : ''}
+                                ${item.category ? `<span>🏷️ ${escapeHtml(item.category)}</span>` : ''}
+                            </div>
+                            ${item.description ? `<div class="item-description">${sanitizeHtml(item.description)}</div>` : ''}
+                            <a href="${escapeHtml(item.link)}" target="_blank" class="item-link">Read more →</a>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            feedContent.innerHTML = html;
+            hideLoading();
+        }
+
+        // Format date string
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return dateString;
+            }
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Sanitize HTML content
+        function sanitizeHtml(html) {
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            
+            // Remove potentially dangerous elements
+            const dangerous = temp.querySelectorAll('script, iframe, object, embed');
+            dangerous.forEach(el => el.remove());
+            
+            // Limit length for performance
+            let text = temp.textContent || temp.innerText || '';
+            if (text.length > 500) {
+                text = text.substring(0, 500) + '...';
+            }
+            
+            return escapeHtml(text);
+        }
+
+        // Show empty state
+        function showEmptyState() {
+            feedContent.innerHTML = `
+                <div class="feed-container">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📡</div>
+                        <div class="empty-state-title">No Feed Loaded</div>
+                        <div class="empty-state-text">Enter an RSS feed URL above and click "View RSS Feed" to get started</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update shareable URL
+        function updateShareUrl(feedUrl) {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const shareableUrl = `${baseUrl}?feed=${encodeURIComponent(feedUrl)}`;
+            shareUrl.textContent = shareableUrl;
+            shareSection.classList.add('active');
+        }
+
+        // Handle copy to clipboard
+        async function handleCopy() {
+            try {
+                await navigator.clipboard.writeText(shareUrl.textContent);
+                showNotification('URL copied to clipboard!', 'success');
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareUrl.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showNotification('URL copied to clipboard!', 'success');
+            }
+        }
+
+        // Handle clear button
+        function handleClear() {
+            feedUrlInput.value = '';
+            feedContent.innerHTML = '';
+            shareSection.classList.remove('active');
+            showEmptyState();
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+
+        // Show loading state
+        function showLoading() {
+            loading.classList.add('active');
+        }
+
+        // Hide loading state
+        function hideLoading() {
+            loading.classList.remove('active');
+        }
+
+        // Show modal dialog
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modal.classList.add('active');
+        }
+
+        // Hide modal dialog
+        function hideModal() {
+            modal.classList.remove('active');
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            notificationMessage.textContent = message;
+            notification.className = `notification ${type} active`;
+            
+            setTimeout(() => {
+                notification.classList.remove('active');
+            }, 3000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
